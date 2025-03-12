@@ -48,18 +48,27 @@ public class SRToolAPIHandler implements Handler {
             return;
         }
 
-        if (req.getData() == null) {
-            rsp.setStatus(200);
-            rsp.setMessage("OK");
-            ctx.result(JsonUtils.encode(rsp));
-            return;
-        }
-
         Account account = LunarCore.getAccountDatabase().getObjectByField(Account.class, "username", req.getUsername());
         if (account == null) {
             rsp.setStatus(401);
             rsp.setMessage("username not found on server " + req.getUsername());
             ctx.status(401);
+            ctx.result(JsonUtils.encode(rsp));
+            return;
+        }
+
+        // Add password validation
+        if (!account.getPassword().equals(req.getPassword())) {
+            rsp.setStatus(401);
+            rsp.setMessage("Invalid password");
+            ctx.status(401);
+            ctx.result(JsonUtils.encode(rsp));
+            return;
+        }
+
+        if (req.getData() == null) {
+            rsp.setStatus(200);
+            rsp.setMessage("OK");
             ctx.result(JsonUtils.encode(rsp));
             return;
         }
