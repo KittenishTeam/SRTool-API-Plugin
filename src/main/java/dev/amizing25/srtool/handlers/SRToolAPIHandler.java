@@ -8,6 +8,7 @@ import emu.lunarcore.LunarCore;
 import emu.lunarcore.data.GameData;
 import emu.lunarcore.game.account.Account;
 import emu.lunarcore.game.avatar.GameAvatar;
+import emu.lunarcore.game.avatar.AvatarMultiPath;
 import emu.lunarcore.game.enums.ItemMainType;
 import emu.lunarcore.game.inventory.GameItem;
 import emu.lunarcore.game.inventory.GameItemSubAffix;
@@ -202,24 +203,47 @@ public class SRToolAPIHandler implements Handler {
     }
 
     public static GameAvatar getAvatarById(Object instance, int avatarId) {
-        Object retval = null;
         try {
+            // Get base avatar ID if this is a multi-path avatar
+            var multiPathExcel = GameData.getMultiplePathAvatarExcelMap().get(avatarId);
+            if (multiPathExcel != null) {
+                // Get the base avatar
+                int baseAvatarId = multiPathExcel.getBaseAvatarID();
+                GameAvatar baseAvatar = null;
+                
+                // Get base avatar using reflection for compatibility
+                Method method;
+                try {
+                    method = instance.getClass().getDeclaredMethod("getAvatarById", int.class, boolean.class);
+                    baseAvatar = (GameAvatar) method.invoke(instance, baseAvatarId, false);
+                } catch (NoSuchMethodException e) {
+                    method = instance.getClass().getDeclaredMethod("getAvatarById", int.class);
+                    baseAvatar = (GameAvatar) method.invoke(instance, baseAvatarId);
+                }
+
+                if (baseAvatar != null) {
+                    // Get and set the multi-path
+                    Player player = (Player) instance;
+                    AvatarMultiPath path = player.getAvatars().getMultiPathById(avatarId);
+                    if (path != null) {
+                        baseAvatar.setMultiPath(path);
+                    }
+                }
+                return baseAvatar;
+            }
+
+            // Handle regular avatars
             Method method;
             try {
-                method = instance.getClass().getDeclaredMethod("getAvatarById", int.class, boolean.class); // this is used for RushiaCore
-                retval = method.invoke(instance, avatarId, false);
+                method = instance.getClass().getDeclaredMethod("getAvatarById", int.class, boolean.class);
+                return (GameAvatar) method.invoke(instance, avatarId, false);
             } catch (NoSuchMethodException e) {
                 method = instance.getClass().getDeclaredMethod("getAvatarById", int.class);
-                retval = method.invoke(instance, avatarId);
+                return (GameAvatar) method.invoke(instance, avatarId);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        if (retval instanceof GameAvatar) {
-            return (GameAvatar) retval;
-        }
-
         return null;
     }
 
