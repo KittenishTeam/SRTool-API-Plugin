@@ -9,6 +9,7 @@ import emu.lunarcore.data.GameData;
 import emu.lunarcore.game.account.Account;
 import emu.lunarcore.game.avatar.GameAvatar;
 import emu.lunarcore.game.avatar.AvatarMultiPath;
+import emu.lunarcore.game.avatar.BaseAvatar;
 import emu.lunarcore.game.enums.ItemMainType;
 import emu.lunarcore.game.inventory.GameItem;
 import emu.lunarcore.game.inventory.GameItemSubAffix;
@@ -148,7 +149,19 @@ public class SRToolAPIHandler implements Handler {
 
                 var avatar = getAvatarById(player, relic.getEquipAvatar());
                 if (avatar != null) {
-                    avatar.equipItem(item);
+                    // Check if this is a multipath avatar
+                    var multiPathExcel = GameData.getMultiplePathAvatarExcelMap().get(relic.getEquipAvatar());
+                    if (multiPathExcel != null) {
+                        // Get the multipath object
+                        var multiPath = player.getAvatars().getMultiPathById(relic.getEquipAvatar());
+                        if (multiPath != null) {
+                            // Use the multipath avatar for equipping
+                            multiPath.equipItem(item);
+                        }
+                    } else {
+                        // Regular avatar equip
+                        avatar.equipItem(item);
+                    }
                 }
             }
 
@@ -164,7 +177,19 @@ public class SRToolAPIHandler implements Handler {
 
                 var avatar = getAvatarById(player, lightcone.getEquipAvatar());
                 if (avatar != null) {
-                    avatar.equipItem(item);
+                    // Check if this is a multipath avatar
+                    var multiPathExcel = GameData.getMultiplePathAvatarExcelMap().get(lightcone.getEquipAvatar());
+                    if (multiPathExcel != null) {
+                        // Get the multipath object
+                        var multiPath = player.getAvatars().getMultiPathById(lightcone.getEquipAvatar());
+                        if (multiPath != null) {
+                            // Use the multipath avatar for equipping
+                            multiPath.equipItem(item);
+                        }
+                    } else {
+                        // Regular avatar equip
+                        avatar.equipItem(item);
+                    }
                 }
             }
 
@@ -192,9 +217,21 @@ public class SRToolAPIHandler implements Handler {
             }
 
             if (item.isEquipped()) {
-                player
-                        .getAvatarById(item.getEquipAvatarId())
-                        .unequipItem(item.getItemMainType() == ItemMainType.Equipment ? GameConstants.EQUIPMENT_SLOT_ID : item.getEquipSlot());
+                var multiPathExcel = GameData.getMultiplePathAvatarExcelMap().get(item.getEquipAvatarExcelId());
+                BaseAvatar avatar;
+                
+                if (multiPathExcel != null) {
+                    // Get multipath avatar directly
+                    avatar = player.getAvatars().getMultiPathById(item.getEquipAvatarExcelId());
+                } else {
+                    // Get regular avatar
+                    avatar = player.getAvatarById(item.getEquipAvatarId());
+                }
+
+                if (avatar != null) {
+                    avatar.unequipItem(item.getItemMainType() == ItemMainType.Equipment ? 
+                        GameConstants.EQUIPMENT_SLOT_ID : item.getEquipSlot());
+                }
             }
 
             toRemove.push(item);
